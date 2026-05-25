@@ -1,0 +1,1 @@
+- [ ] Read up on `this`. *What* does it capture. *How* does it work under the hood.

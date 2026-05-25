@@ -59,3 +59,37 @@ Widget& w() {
 }
 w();
 ```
+
+## Declare a virtual destructor in a class if and only if that class contains at least one virtual function
+Not having a virtual destructor on a base class that is being inherited can lead to undefined behavior. It happens when trying to delete a pointer that is of base type but actually has other dynamic type.
+### Examples
+Bad:
+```cpp
+class TimeKeeper { 
+public: 
+    TimeKeeper();
+    ~TimeKeeper();
+};
+
+class AtomicClock: public TimeKeeper { ... };
+
+TimeKeeper *ptk = getTimeKeeper();
+delete ptk;
+```
+
+Good:
+```cpp
+class TimeKeeper { 
+public:
+    TimeKeeper(); 
+    virtual ~TimeKeeper();
+}; 
+TimeKeeper *ptk = getTimeKeeper();
+delete ptk;
+```
+
+## Prevent exceptions from leaving destructors
+Destructors should never throw errors because they are left unhandled and program may have undefined behavior. Two main ways of dealing with exceptions in destructors are:
+- Terminating the program
+- Swallowing the exception
+If cleanup requires exception handling it's better to move the cleanup logic into a separate cleanup function that clients may call themselves and handle exceptions as they see fit.
