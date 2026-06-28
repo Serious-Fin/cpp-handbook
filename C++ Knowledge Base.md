@@ -93,3 +93,94 @@ Destructors should never throw errors because they are left unhandled and progra
 - Terminating the program
 - Swallowing the exception
 If cleanup requires exception handling it's better to move the cleanup logic into a separate cleanup function that clients may call themselves and handle exceptions as they see fit.
+
+## Assignment operators should return a reference to `*this`
+Is it good convention to follow because all standard library types follow it as well. This allows chaining of assignments like so: `x = y = z = 15`
+### Example
+```cpp
+class Widget { 
+public: 
+	...
+	Widget& operator+=(const Widget& rhs) // the convention applies to
+	{                                     // +=, -=, *=, etc. 
+		... 
+		return *this; 
+	} 
+	
+	Widget& operator=(int rhs) // it applies even if the
+	{                          // operator’s parameter type 
+		...                    // is unconventional 
+		return *this; 
+	} 
+	... 
+};
+```
+
+## Handle assignment to self in `operator=`
+Assignment to self can be quite common in code like this `a[i] = a[j]` or this `*px = *py`.
+
+There are a couple of ways to deal with it:
+1. Explicitly handle assignment to self
+```cpp
+Widget& Widget::operator=(const Widget& rhs) 
+{ 
+	if (this == &rhs) return *this; // identity test: if a self-assignment, 
+	                                // do nothing 
+	delete pb; 
+	pb = new Bitmap(*rhs.pb); 
+	return *this; 
+}
+```
+
+2. Making assignment exception-safe also makes it self-assignment safe
+```cpp
+Widget& Widget::operator=(const Widget& rhs) 
+{ 
+	Bitmap *pOrig = pb;         // remember original pb 
+	pb = new Bitmap(*rhs.pb);   // point pb to a copy of rhs’s bitmap 
+	delete pOrig;               // delete the original pb 
+	return *this; 
+}
+```
+
+3. Using the "copy-and-swap" technique makes the assignment exception-safe and self-assignment safe
+```cpp
+Widget& Widget::operator=(const Widget& rhs) 
+{ 
+    Widget temp(rhs);    // make a copy of rhs’s data 
+    swap(temp);          // swap *this’s data with the copy’s 
+    return *this; 
+}
+```
+
+## Use the same form in corresponding uses of `new` and `delete`
+If you use `[]` in a `new` expression, you must use `[]` in the corresponding `delete` expression. If you don’t use `[]` in a `new` expression, don’t use `[]` in the matching `delete` expression.
+```cpp
+std::string *stringPtr1 = new std::string; 
+std::string *stringPtr2 = new std::string[100]; 
+... 
+delete stringPtr1;     // delete an object 
+delete [] stringPtr2;  // delete an array of objects
+```
+
+## Store `new`ed objects in smart pointers in standalone statements
+In a method call like this
+```cpp
+int priority(); 
+void processWidget(std::shared_ptr pw, int priority);
+...
+processWidget(std::shared_ptr(new Widget), priority());
+```
+
+Compilers are given a lot of freedom in which order they want to execute the calls. If they decide to do the following:
+- Execute `new Widget`
+- Call `priority`
+- Call the `std::shared_ptr` constructor
+And calling `priority` throws an exception, then memory will leak because nobody deletes the newly created widget.
+
+It's better to create the shared pointer before calling `processWidget`:
+```cpp
+std::tr1::shared_ptr pw(new Widget);
+...
+processWidget(pw, priority());
+```
