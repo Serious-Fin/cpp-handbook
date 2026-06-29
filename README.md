@@ -2,7 +2,7 @@
 Wiki repo with c++ best practices found in read books
 
 ## Book Checklist
-- [ ] Effective C++ (99/321)
+- [ ] Effective C++ (127/321)
 - [ ] More Effective C++
 - [ ] Effective Modern C++
 - [ ] Exceptional C++

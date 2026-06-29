@@ -184,3 +184,69 @@ std::tr1::shared_ptr pw(new Widget);
 ...
 processWidget(pw, priority());
 ```
+
+## Declare data members `private`
+- Declare data members private. It gives clients syntactically uniform access to data, affords fine-grained access control, allows invariants to be enforced, and offers class authors implementation flexibility. 
+- `protected` is no more encapsulated than public.
+
+## Prefer non-member non-friend functions to member functions
+Doing so increases encapsulation, packaging flexibility, and functional extensibility.
+### Examples
+Bad:
+```cpp
+class WebBrowser { 
+public: 
+	... 
+	void clearCache(); 
+	void clearHistory(); 
+	void removeCookies();
+	
+	void clearEverything(); // BAD!
+};
+```
+
+Good:
+```cpp
+void clearBrowser(WebBrowser& wb) 
+{ 
+	wb.clearCache(); 
+	wb.clearHistory(); 
+	wb.removeCookies(); 
+}
+```
+
+## Declare non-member functions when type conversions should apply to all parameters
+If you need type conversions on all parameters to a function (including the one that would otherwise be pointed to by the this pointer), the function must be a non-member.
+### Examples
+Bad:
+```cpp
+class Rational { 
+public: 
+	... 
+	const Rational operator*(const Rational& rhs) const; 
+};
+
+result = oneHalf * 2; // fine 
+
+result = 2 * oneHalf; // error!
+```
+
+Good:
+```cpp
+class Rational { 
+	...     // contains no operator* 
+}; 
+
+const Rational operator*(const Rational& lhs, // now a non-member 
+                         const Rational& rhs) // function 
+{ 
+	return Rational(lhs.numerator() * rhs.numerator(), 
+	                lhs.denominator() * rhs.denominator()); 
+} 
+
+Rational oneFourth(1, 4); 
+Rational result; 
+
+result = oneFourth * 2; // fine 
+result = 2 * oneFourth; // also fine now
+```
