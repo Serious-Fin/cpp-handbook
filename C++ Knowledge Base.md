@@ -250,3 +250,95 @@ Rational result;
 result = oneFourth * 2; // fine 
 result = 2 * oneFourth; // also fine now
 ```
+
+## Postpone variable definitions as long as possible
+It increases program clarity and improves program efficiency.
+
+### Examples
+Bad:
+```cpp
+std::string encryptPassword(const std::string& password) 
+{ 
+	using namespace std; 
+	string encrypted; 
+	
+	if (password.length() < MinimumPasswordLength) { 
+		throw logic_error("Password is too short"); 
+	} 
+	
+	...
+	return encrypted; 
+}
+```
+
+Good:
+```cpp
+std::string encryptPassword(const std::string& password) 
+{ 
+	using namespace std; 
+	if (password.length() < MinimumPasswordLength) { 
+		throw logic_error("Password is too short"); 
+	} 
+	
+	string encrypted; 
+	... 
+	return encrypted; 
+}
+```
+
+## Minimize casting
+
+Types of casting:
+- C-style casts: `(T) expression` - old-school casts.
+- `const_cast<T>(expression)` - used to cast away the constness of objects.
+- `dynamic_cast<T>(expression)` - it performs "safe downcasting" i.e., determines whether an object is of a particular type in an inheritance hierarchy. It's also the only cast that may have significant runtime cost.
+- `reinterpret_cast<T>(expression)`- used for low level casts that yield implementation-dependent results, e.g. casting a pointer to an int. It should be used rarely.
+- `static_cast(expression)` - used to force implicit conversions (e.g. int to double or non-const to const object).
+
+Using new casts is preferred because:
+- They're much easier to find in the code.
+- Since each cast has a specific purpose compilers may diagnose usage errors. For example, trying to cast away the constness using new-style cast other that `const_cast` will provide compiler errors.
+
+## Avoid returning "handles" to object internals
+Avoid returning handles (references, pointers, or iterators) to object internals. Not returning handles increases encapsulation, helps const member functions act const, and minimizes the creation of dangling handles.
+
+In an example like this returning a reference from `boundingBox` will be undefined behavior because that reference is deleted after the call:
+```cpp
+GUIObject *pgo; 
+const Point *pUpperLeft = &(boundingBox(*pgo).upperLeft());
+```
+
+## Understanding inline functions
+Use inline only on very short functions where code generated for function body would be smaller than code generated for function call.
+
+Two ways to declare inline functions are:
+- Implicit:
+```cpp
+class Person { 
+public: 
+	... 
+	int age() const { return theAge; } // an implicit inline request: age is 
+	...                                // defined in a class definition 
+private: 
+	int theAge; 
+};
+```
+- Explicit:
+```cpp
+template<typenameT>                              // an explicit inline 
+inline const T& std::max(const T& a, const T& b) // request: std::max is 
+{ return a < b ? b : a; }                        // preceded by “inline”
+```
+
+Constructors and destructors should never be `inline` because compilers generate code for those.
+
+Some debuggers prevent from setting breakpoints in inline functions.
+
+## Make sure public inheritance models "is-a"
+Public inheritance means “is-a.” Everything that applies to base classes must also apply to derived classes, because every derived class object is a base class object.
+
+Example of this claim:
+```cpp
+class Person { ... }; 
+class Student: public Person { ... };
+```
