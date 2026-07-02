@@ -342,3 +342,50 @@ Example of this claim:
 class Person { ... }; 
 class Student: public Person { ... };
 ```
+
+## Never redefine an inherited non-virtual function
+Non-virtual functions are statically bound and virtual functions are dynamically bound so calling the same functions on different types of pointers, even if those pointers point to the same underlying object, will call different functions (when those functions are non-virtual and redefined).
+
+```cpp
+class B { 
+public: 
+	void mf(); 
+	... 
+};
+
+class D: public B { 
+public: 
+	void mf(); // hides B::mf;
+	... 
+};
+
+D x;
+B *pB = &x;
+D *pD = &x;
+
+pB->mf(); // calls B::mf 
+pD->mf(); // calls D::mf
+```
+
+## Never redefine a function's inherited default parameter value
+Redefining an inherited function's default parameter leads to undefined behavior as inherited (virtual) functions are dynamically bound but the default parameters are statically bound so redefining it in derived classes can lead to strange behavior based on the kind of pointer we call the function from.
+
+```cpp
+class Shape { 
+public: 
+	enum ShapeColor { Red, Green, Blue }; 
+	virtual void draw(ShapeColor color = Red) const = 0; 
+};
+
+class Rectangle: public Shape { 
+public: 
+	// Defined different default param - bad!
+	virtual void draw(ShapeColor color = Green) const;
+};
+
+// Static type - Shape
+// Dynamic type - Rectangle
+Shape *pr = new Rectangle;
+
+pr->draw(); // calls Rectangle::draw(Shape::Red)
+```
